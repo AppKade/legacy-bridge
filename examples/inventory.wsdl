@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" name="Inventory" targetNamespace="urn:inventory">
+  <wsdl:portType name="InventoryPort">
+    <wsdl:operation name="GetItem">
+      <wsdl:input message="tns:GetItemRequest"/>
+      <wsdl:output message="tns:GetItemResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:service name="InventoryService"/>
+</wsdl:definitions>
