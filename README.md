@@ -19,7 +19,7 @@ An offline-first, open-source developer toolkit for exploring SOAP/WSDL contract
 ---
 
 > [!IMPORTANT]
-> **Early development (v0.1 scaffold).** The working command is `inspect`, which lists WSDL 1.1 services, port types and operation names from a local file. WSDL validation, XSD resolution, SOAP execution, and MCP/REST generation are **not implemented yet**. This is not ready for production integrations.
+> **Early development (v0.1 scaffold).** The working command is `inspect`, which lists WSDL 1.1 services, port types and operation names from a local file. Preliminary local import checks are available, but full WSDL/XSD semantic validation, SOAP execution, and MCP/REST generation are **not implemented yet**. This is not ready for production integrations.
 
 ## Why Legacy Bridge?
 
@@ -41,13 +41,14 @@ SOAP-based systems are still common, yet their service contracts can be cumberso
 | Human-readable and JSON CLI output | ✅ Initial implementation |
 | Basic malformed-XML detection | ✅ Initial implementation |
 | Automated tests and CI workflow | ✅ Configured; check CI results |
-| Complete WSDL and XSD validation | 📋 Planned |
+| Preliminary local WSDL/XML and import checks | ✅ Initial implementation |
+| Complete WSDL and XSD semantic validation | 📋 Planned |
 | Local import and schema resolution | 📋 Planned |
 | SOAP binding and type analysis | 📋 Planned |
 | Generated TypeScript MCP server | 📋 Planned |
 | REST/OpenAPI generation | 📋 Later phase |
 
-The inspector is deliberately limited. It does not resolve imports, validate SOAP bindings, classify operations by side effect, or contact SOAP endpoints.
+The inspector and validator are deliberately limited. Validation currently checks XML well-formedness, file boundaries, blocked remote references, and recursive local imports. It does not verify WSDL type semantics. The inspector is deliberately limited. It does not resolve imports, validate SOAP bindings, classify operations by side effect, or contact SOAP endpoints.
 
 ## Quick start
 
@@ -79,6 +80,7 @@ Get machine-readable JSON:
 
 ```bash
 npm run dev -- inspect examples/inventory.wsdl --json
+npm run dev -- validate examples/inventory.wsdl --json
 ```
 
 Run local checks:
@@ -99,15 +101,14 @@ The CLI is not yet published to npm. Run it from this repository using `npm run 
 | --- | --- |
 | `inspect <file>` | Display a basic inventory of WSDL 1.1 operations |
 | `inspect <file> --json` | Emit that inventory as JSON |
+| `validate <file>` | Preliminary local XML/import validation |
+| `validate <file> --root <dir> --json` | Restrict import traversal to a directory and emit diagnostics |
 | `--help` | Show CLI usage |
 | `--version` | Display the current package version |
 
 ### Proposed, not yet available
 
 ```bash
-# Validate contract and imported types
-legacy-bridge validate service.wsdl
-
 # Generate a reviewable MCP adapter
 legacy-bridge generate service.wsdl --target mcp --language typescript --read-only
 

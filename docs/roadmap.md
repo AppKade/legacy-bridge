@@ -11,7 +11,8 @@
 - [x] CLI scaffold, README and initial local WSDL operation inventory.
 - [x] Unit test scaffold and CI definition.
 - [ ] Complete WSDL 1.1/XSD semantic resolver.
-- [ ] WSDL validation and actionable diagnostics.
+- [x] Preliminary local XML/import validation with structured diagnostics.
+- [ ] Full WSDL/XSD semantic validation and actionable diagnostics.
 - [ ] Deterministic TypeScript MCP server generation.
 - [ ] Runtime SOAP client with local mock fixtures.
 - [ ] Safe operation allowlisting and auth injection.

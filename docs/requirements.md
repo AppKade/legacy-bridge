@@ -52,3 +52,10 @@ Backend engineers, platform teams, integration developers, and maintainers of SO
 3. SOAP fault cases return safe, structured errors without exposing credentials.
 4. Unapproved operations are unavailable by default.
 5. Golden contract fixtures and integration tests pass for supported SOAP 1.1/1.2 bindings.
+
+## Implemented in the second iteration
+
+- Preliminary `validate` command, with `--json` and `--root` options.
+- Local-only recursive import traversal; directory confinement, symlink escape checks, file size/count limits, XML well-formedness diagnostics and DTD blocking.
+- Tests for valid local imports, remote URLs, escapes, malformed XML, DTD declarations and cyclic references.
+- **Limitation:** these checks do not resolve schema types, namespaces, SOAP bindings or WSDL semantic references. A passing result does not certify contract correctness.

@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { inspectWsdl } from './wsdl.js';
+import { validateLocalContract } from './validate.js';
 
 const program = new Command();
 program.name('legacy-bridge').description('Inspect legacy service contracts and prepare modern adapters')
@@ -25,6 +26,28 @@ program.command('inspect')
         }
         for (const warning of result.warnings) console.warn(`Warning: ${warning}`);
       }
+    } catch (error) {
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      process.exitCode = 1;
+    }
+  });
+
+program.command('validate')
+  .description('Check local XML contracts and imports without accessing the network')
+  .argument('<file>', 'Local WSDL 1.1 entry file')
+  .option('--root <directory>', 'Allowed contract root directory (default: entry file directory)')
+  .option('--json', 'Print machine-readable diagnostics')
+  .action(async (file: string, options: { root?: string; json?: boolean }) => {
+    try {
+      const report = await validateLocalContract(resolve(file), options.root ? resolve(options.root) : undefined);
+      if (options.json) console.log(JSON.stringify(report, null, 2));
+      else {
+        for (const diagnostic of report.diagnostics) {
+          console.log(`${diagnostic.severity.toUpperCase()} ${diagnostic.code}: ${diagnostic.file}: ${diagnostic.message}`);
+        }
+        console.log(`Checked ${report.files.length} local file(s): ${report.valid ? 'pass (partial)' : 'fail'}`);
+      }
+      if (!report.valid) process.exitCode = 1;
     } catch (error) {
       console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
       process.exitCode = 1;

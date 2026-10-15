@@ -15,3 +15,7 @@ Treat WSDL documents, imported XSDs, endpoint addresses and SOAP responses as un
 - Include a threat-model review before enabling network calls or shipping an executable generator.
 
 The current preview inspector does not resolve references or initiate network operations. Full XML parser hardening and resource limits remain necessary before processing untrusted contracts at scale.
+
+## Initial validator implementation
+
+The preliminary validator limits each contract to 2 MiB and 64 files, canonicalizes file paths before loading, rejects files outside the root directory, blocks DOCTYPE/ENTITY declarations, and rejects remote references. These checks are defense in depth, not a complete XML parser security audit. They do not provide protection against every XML resource exhaustion pattern.
