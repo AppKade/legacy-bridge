@@ -24,6 +24,10 @@ program.command('inspect')
           console.log(`Port type: ${port.name}`);
           for (const op of port.operations) console.log(`  - ${op.name}`);
         }
+        for (const message of result.messages) {
+          console.log(`Message: ${message.name}`);
+          for (const part of message.parts) console.log(`  - ${part.name}: ${part.element ?? part.type ?? '(unresolved)'}`);
+        }
         for (const warning of result.warnings) console.warn(`Warning: ${warning}`);
       }
     } catch (error) {

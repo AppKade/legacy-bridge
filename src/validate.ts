@@ -1,6 +1,6 @@
 import { readFile, realpath, stat } from 'node:fs/promises';
-import { dirname, isAbsolute, relative, resolve } from 'node:path';
-import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { parseContractXml, documentRoot, MAX_BYTES, WSDL_11, XSD } from './xml.js';
 
 export type Diagnostic = {
   code: string;
@@ -17,7 +17,6 @@ export type ValidationReport = {
 
 type XmlNode = Record<string, unknown>;
 const MAX_FILES = 64;
-const MAX_BYTES = 2 * 1024 * 1024;
 const nodes = (value: unknown): XmlNode[] =>
   (Array.isArray(value) ? value : value === undefined ? [] : [value])
     .filter((item): item is XmlNode => !!item && typeof item === 'object');
@@ -70,7 +69,7 @@ export async function validateLocalContract(entry: string, rootDirectory = dirna
       return;
     }
     const rel = relative(root, canonical);
-    if (rel === '..' || rel.startsWith('../') || isAbsolute(rel)) {
+    if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
       error('OUTSIDE_ROOT', filename, 'Contract reference escapes the allowed root directory');
       return;
     }
@@ -83,6 +82,10 @@ export async function validateLocalContract(entry: string, rootDirectory = dirna
     files.push(canonical);
     try {
       const info = await stat(canonical);
+      if (!info.isFile()) {
+        error('NOT_FILE', canonical, 'Contract reference must be a regular file');
+        return;
+      }
       if (info.size > MAX_BYTES) {
         error('SIZE_LIMIT', canonical, `Contract file exceeds ${MAX_BYTES} bytes`);
         return;
@@ -92,19 +95,20 @@ export async function validateLocalContract(entry: string, rootDirectory = dirna
         error('DTD_NOT_ALLOWED', canonical, 'DOCTYPE and entity declarations are not allowed');
         return;
       }
-      const checked = XMLValidator.validate(xml);
-      if (checked !== true) {
-        error('INVALID_XML', canonical, checked.err.msg);
+      let doc: XmlNode;
+      try { doc = parseContractXml(xml); }
+      catch (cause) {
+        error('INVALID_XML', canonical, cause instanceof Error ? cause.message : 'Invalid XML');
         return;
       }
-      const doc = new XMLParser({
-        ignoreAttributes: false,
-        attributeNamePrefix: '@_',
-        processEntities: false,
-        trimValues: true
-      }).parse(xml) as XmlNode;
-      if (isEntry && !Object.keys(doc).some(key => key.split(':').at(-1) === 'definitions')) {
-        error('NOT_WSDL_11', canonical, 'Expected a WSDL 1.1 definitions root');
+      const element = documentRoot(doc);
+      if (isEntry && !(element.name === 'definitions' && element.namespace === WSDL_11)) {
+        error('NOT_WSDL_11', canonical, 'Expected a WSDL 1.1 definitions root in the WSDL namespace');
+        return;
+      }
+      if (!isEntry && !((element.name === 'definitions' && element.namespace === WSDL_11) || (element.name === 'schema' && element.namespace === XSD))) {
+        error('NOT_CONTRACT', canonical, 'Imported document must be a namespace-qualified WSDL 1.1 or XSD contract');
+        return;
       }
       for (const location of references(doc)) {
         if (/^[a-z][a-z\d+.-]*:/i.test(location) || location.startsWith('//')) {

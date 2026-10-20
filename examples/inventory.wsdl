@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" name="Inventory" targetNamespace="urn:inventory">
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="urn:inventory" xmlns:xsd="http://www.w3.org/2001/XMLSchema" name="Inventory" targetNamespace="urn:inventory">
+  <wsdl:message name="GetItemRequest"><wsdl:part name="id" type="xsd:string"/></wsdl:message>
+  <wsdl:message name="GetItemResponse"><wsdl:part name="item" type="xsd:string"/></wsdl:message>
   <wsdl:portType name="InventoryPort">
     <wsdl:operation name="GetItem">
       <wsdl:input message="tns:GetItemRequest"/>
