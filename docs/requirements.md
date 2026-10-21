@@ -59,3 +59,9 @@ Backend engineers, platform teams, integration developers, and maintainers of SO
 - Local-only recursive import traversal; directory confinement, symlink escape checks, file size/count limits, XML well-formedness diagnostics and DTD blocking.
 - Tests for valid local imports, remote URLs, escapes, malformed XML, DTD declarations and cyclic references.
 - **Limitation:** these checks do not resolve schema types, namespaces, SOAP bindings or WSDL semantic references. A passing result does not certify contract correctness.
+
+## Contract-boundary review
+
+Inspection and validation share size, DTD and XML parsing policy. Roots require the correct WSDL namespace; the inspector ignores extension operations from unrelated namespaces. Local dependency validation checks imported WSDL/XSD root namespaces and rejects non-regular files. Directory confinement handles native path separators. These remain preliminary checks, not full semantic resolution. CI uses the committed lockfile with `npm ci --ignore-scripts`.
+
+Inspection now inventories WSDL message definitions and their declared part names, element references and type references. These are raw QNames, not resolved XSD contracts. The bundled sample declares its message namespaces and parts.

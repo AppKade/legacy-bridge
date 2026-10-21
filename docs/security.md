@@ -14,7 +14,7 @@ Treat WSDL documents, imported XSDs, endpoint addresses and SOAP responses as un
 - Preserve upstream authorization. An MCP adapter must not expand privileges beyond the original service account.
 - Include a threat-model review before enabling network calls or shipping an executable generator.
 
-The current preview inspector does not resolve references or initiate network operations. Full XML parser hardening and resource limits remain necessary before processing untrusted contracts at scale.
+The current preview inspector does not resolve references or initiate network operations. Both inspection and validation reject DTD/entity declarations and contract strings above 2 MiB. Further parser and resource-exhaustion review remains necessary before processing untrusted contracts at scale.
 
 ## Initial validator implementation
 

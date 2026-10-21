@@ -18,3 +18,20 @@ describe('inspectWsdl', () => {
   it('rejects non-WSDL documents', () => expect(() => inspectWsdl('<hello/>')).toThrow());
   it('rejects malformed XML', () => expect(() => inspectWsdl('<')).toThrow());
 });
+
+it('applies the same DTD and size policy as validation', () => {
+  expect(() => inspectWsdl('<!DOCTYPE definitions><definitions/>')).toThrow(/DOCTYPE/);
+  expect(() => inspectWsdl(' '.repeat(2 * 1024 * 1024 + 1))).toThrow(/2 MiB/);
+});
+it('checks namespaces without confusing extension elements with WSDL operations', () => {
+  expect(() => inspectWsdl('<definitions xmlns="urn:other"/>')).toThrow(/WSDL/);
+  expect(() => inspectWsdl('<definitions/>')).toThrow(/WSDL/);
+  const xml = sample.replace('<wsdl:operation name="GetItem">', '<wsdl:operation name="GetItem">')
+    .replace('</wsdl:portType>', '<ext:operation xmlns:ext="urn:extension" name="NotAnOperation"/></wsdl:portType>');
+  expect(inspectWsdl(xml).portTypes[0].operations.map(o => o.name)).toEqual(['GetItem']);
+});
+
+it('inventories message parts without claiming type resolution', () => {
+  const xml=sample.replace('<wsdl:portType', '<wsdl:message name="Request"><wsdl:part name="body" element="tns:Item"/><wsdl:part name="count" type="xsd:int"/></wsdl:message><wsdl:portType');
+  expect(inspectWsdl(xml).messages).toEqual([{name:'Request',parts:[{name:'body',element:'tns:Item'},{name:'count',type:'xsd:int'}]}]);
+});

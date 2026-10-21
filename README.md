@@ -200,3 +200,5 @@ Built and maintained by <a href="https://github.com/AppKade">AppKade</a> and con
 ⭐ If you find the direction useful, star the project and help shape its roadmap.
 
 </div>
+
+The inspector also lists WSDL message definitions and declared part element/type references. Namespaces are checked for WSDL inventory elements; imported types and QName references are still unresolved. Both inspection and validation enforce the shared DTD/size policy.

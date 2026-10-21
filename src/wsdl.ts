@@ -1,41 +1,32 @@
-import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import { parseContractXml, documentRoot, children, WSDL_11, WSDL_20 } from './xml.js';
 
 export type WsdlOperation = { name: string; input?: string; output?: string };
+export type WsdlMessage = {name:string; parts:{name:string; element?:string; type?:string}[]};
 export type WsdlInspection = {
   service: string | null;
   targetNamespace: string | null;
   portTypes: { name: string; operations: WsdlOperation[] }[];
+  messages: WsdlMessage[];
   warnings: string[];
 };
-
-const asArray = <T>(value: T | T[] | undefined): T[] =>
-  value === undefined ? [] : Array.isArray(value) ? value : [value];
 
 /**
  * Contract inventory only. Does not resolve WSDL imports or generate executable adapters.
  * External entities and remote schemas are deliberately not fetched.
  */
 export function inspectWsdl(xml: string): WsdlInspection {
-  const result = XMLValidator.validate(xml);
-  if (result !== true) throw new Error(`Invalid XML: ${result.err.msg}`);
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: '@_',
-    removeNSPrefix: true,
-    processEntities: false,
-    trimValues: true
-  });
-  const parsed = parser.parse(xml) as Record<string, unknown>;
-  const root = (parsed.definitions ?? parsed.description) as Record<string, unknown> | undefined;
-  if (!root || typeof root !== 'object') {
-    throw new Error('Expected a WSDL definitions or description root element');
-  }
-  const ports = asArray(root.portType as Record<string, unknown> | Record<string, unknown>[] | undefined);
+  const parsed = parseContractXml(xml);
+  const document = documentRoot(parsed);
+  const is11 = document.name === 'definitions' && document.namespace === WSDL_11;
+  const is20 = document.name === 'description' && document.namespace === WSDL_20;
+  if (!is11 && !is20) throw new Error('Expected a namespace-qualified WSDL definitions or description root element');
+  const root = document.node;
+  const ports = children(root, 'portType', root);
   const portTypes = ports.map(port => ({
     name: String(port['@_name'] ?? 'unnamed'),
-    operations: asArray(port.operation as Record<string, unknown> | Record<string, unknown>[] | undefined).map(op => {
-      const input = op.input as Record<string, unknown> | undefined;
-      const output = op.output as Record<string, unknown> | undefined;
+    operations: children(port, 'operation', root).map(op => {
+      const input = children(op, 'input', {...root, ...port})[0];
+      const output = children(op, 'output', {...root, ...port})[0];
       return {
         name: String(op['@_name'] ?? 'unnamed'),
         ...(input?.['@_message'] ? { input: String(input['@_message']) } : {}),
@@ -46,13 +37,21 @@ export function inspectWsdl(xml: string): WsdlInspection {
   const warnings = [
     'Preview inventory only: imports, type resolution, SOAP bindings and security policies are not validated.'
   ];
-  if (parsed.description) warnings.push('WSDL 2.0 detected: operation extraction is not implemented.');
+  if (is20) warnings.push('WSDL 2.0 detected: operation extraction is not implemented.');
   if (portTypes.length === 0) warnings.push('No WSDL 1.1 portType elements found.');
   return {
-    service: asArray(root.service as Record<string, unknown> | Record<string, unknown>[] | undefined)
+    service: children(root, 'service', root)
       .map(x => x['@_name']).filter(Boolean).map(String)[0] ?? null,
     targetNamespace: root['@_targetNamespace'] ? String(root['@_targetNamespace']) : null,
     portTypes,
+    messages:children(root, 'message', root).map(message => ({
+      name:String(message['@_name'] ?? 'unnamed'),
+      parts:children(message, 'part', root).map(part => ({
+        name:String(part['@_name'] ?? 'unnamed'),
+        ...(part['@_element'] ? {element:String(part['@_element'])} : {}),
+        ...(part['@_type'] ? {type:String(part['@_type'])} : {}),
+      })),
+    })),
     warnings
   };
 }

@@ -62,9 +62,21 @@ describe('validateLocalContract', () => {
   it('does not recurse forever for cyclic imports', async () => {
     const root = await fixture();
     await writeFile(join(root, 'contract.wsdl'), wsdl('types.xsd'));
-    await writeFile(join(root, 'types.xsd'), '<schema><include schemaLocation="contract.wsdl"/></schema>');
+    await writeFile(join(root, 'types.xsd'), '<schema xmlns="http://www.w3.org/2001/XMLSchema"><include schemaLocation="contract.wsdl"/></schema>');
     const result = await validateLocalContract(join(root, 'contract.wsdl'));
     expect(result.valid).toBe(true);
     expect(result.files).toHaveLength(2);
   });
+});
+
+it('rejects lookalike roots and unrelated imported XML', async () => {
+  const root = await fixture();
+  const file = join(root, 'contract.wsdl');
+  for (const xml of ['<definitions/>', '<definitions xmlns="urn:unrelated"/>']) {
+    await writeFile(file, xml);
+    expect((await validateLocalContract(file)).diagnostics.some(d => d.code === 'NOT_WSDL_11')).toBe(true);
+  }
+  await writeFile(file, wsdl('types.xsd'));
+  await writeFile(join(root, 'types.xsd'), '<unrelated/>');
+  expect((await validateLocalContract(file)).diagnostics.some(d => d.code === 'NOT_CONTRACT')).toBe(true);
 });
